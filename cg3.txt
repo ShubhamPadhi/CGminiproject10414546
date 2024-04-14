@@ -1,0 +1,214 @@
+#include <GL/glew.h>
+#include <GL/freeglut.h>
+#include <cmath>
+#include <ctime>
+
+#define WINDOW_WIDTH 400
+#define WINDOW_HEIGHT 400
+#define CLOCK_RADIUS 100
+#define PENDULUM_LENGTH 240
+
+float pendulumAngle = 0;
+float pendulumDirection = 1;
+const float MAX_ANGLE = 30;
+bool isDraggingPendulum = false;
+int prevMouseX = 0;
+
+// Quadrant to move clock within
+enum Quadrant { TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT };
+Quadrant currentQuadrant = TOP_LEFT;
+
+void init() {
+    glewInit();
+    glClearColor(1.0, 1.0, 1.0, 1.0); // White background
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrtho(-WINDOW_WIDTH / 2, WINDOW_WIDTH / 2, -WINDOW_HEIGHT / 2, WINDOW_HEIGHT / 2, -1.0, 1.0);
+    glEnable(GL_DEPTH_TEST);
+}
+
+void drawCircle(float radius) {
+    glBegin(GL_LINE_LOOP);
+    for (int i = 0; i < 360; i++) {
+        float angle = i * 3.1415926 / 180;
+        float x = radius * cos(angle);
+        float y = radius * sin(angle);
+        glVertex2f(x, y);
+    }
+    glEnd();
+}
+
+void drawPendulum() {
+    glPushMatrix();
+    glTranslatef(0, -CLOCK_RADIUS, 0);
+    glRotatef(pendulumAngle, 0, 0, 1); // Rotate around the z-axis
+    glLineWidth(5);
+    glColor3f(0.1, 0.5, 0.8); // Blue pendulum
+
+    // Draw house-shaped pendulum
+    glBegin(GL_QUADS); // Main body of the house
+    glVertex2f(-20, 0);
+    glVertex2f(20, 0);
+    glVertex2f(20, -PENDULUM_LENGTH);
+    glVertex2f(-20, -PENDULUM_LENGTH);
+    glEnd();
+
+    glBegin(GL_TRIANGLES); // Roof of the house
+    glVertex2f(-20, 0);
+    glVertex2f(20, 0);
+    glVertex2f(0, 20);
+    glEnd();
+
+    glPopMatrix();
+}
+
+void drawClock() {
+    time_t rawtime;
+    struct tm *timeinfo;
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+
+    switch (currentQuadrant) {
+        case TOP_LEFT:
+            glTranslatef(-WINDOW_WIDTH / 4, WINDOW_HEIGHT / 4, 0);
+            break;
+        case TOP_RIGHT:
+            glTranslatef(WINDOW_WIDTH / 4, WINDOW_HEIGHT / 4, 0);
+            break;
+        case BOTTOM_LEFT:
+            glTranslatef(-WINDOW_WIDTH / 4, -WINDOW_HEIGHT / 4, 0);
+            break;
+        case BOTTOM_RIGHT:
+            glTranslatef(WINDOW_WIDTH / 4, -WINDOW_HEIGHT / 4, 0);
+            break;
+    }
+
+    glColor3f(0, 0, 0);
+    drawCircle(CLOCK_RADIUS);
+
+    // Draw hour markers
+    glColor3f(0, 0, 0); // Black color
+    glLineWidth(2);
+    for (int i = 0; i < 12; ++i) {
+        glPushMatrix();
+        glRotatef(i * 30, 0, 0, 1); // Rotate for each hour marker
+        glBegin(GL_LINES);
+        glVertex2f(0, CLOCK_RADIUS - 10);
+        glVertex2f(0, CLOCK_RADIUS - 20);
+        glEnd();
+        glPopMatrix();
+    }
+
+    float secAngle = (60 - timeinfo->tm_sec) * 6; // Reversed for clockwise rotation
+    float minAngle = (60 - timeinfo->tm_min) * 6 + secAngle / 60; // Reversed for clockwise rotation
+    float hourAngle = (12 - (timeinfo->tm_hour % 12)) * 30 + minAngle / 12; // Reversed for clockwise rotation
+
+    // Draw clock hands
+    glPushMatrix();
+    glRotatef(-90, 0, 0, 1);
+    
+    // Seconds hand
+    glRotatef(secAngle, 0, 0, 1);
+    glColor3f(0.9, 0.2, 0.2); // Red seconds hand
+    glLineWidth(1);
+    glBegin(GL_LINES);
+    glVertex2f(0, 0);
+    glVertex2f(0, CLOCK_RADIUS - 20);
+    glEnd();
+
+    // Minutes hand
+    glRotatef(-secAngle, 0, 0, 1); // Compensate for seconds hand rotation
+    glRotatef(minAngle, 0, 0, 1);
+    glColor3f(0.2, 0.7, 0.2); // Green minutes hand
+    glLineWidth(2);
+    glBegin(GL_LINES);
+    glVertex2f(0, 0);
+    glVertex2f(0, CLOCK_RADIUS - 40);
+    glEnd();
+
+    // Hours hand
+    glRotatef(-minAngle, 0, 0, 1); // Compensate for minutes hand rotation
+    glRotatef(hourAngle, 0, 0, 1);
+    glColor3f(0.2, 0.2, 0.9); // Blue hours hand
+    glLineWidth(3);
+    glBegin(GL_LINES);
+    glVertex2f(0, 0);
+    glVertex2f(0, CLOCK_RADIUS - 60);
+    glEnd();
+
+    glPopMatrix();
+
+    drawPendulum();
+
+    glutSwapBuffers();
+}
+
+void timer(int) {
+    pendulumAngle += pendulumDirection;
+    if (pendulumAngle >= MAX_ANGLE || pendulumAngle <= -MAX_ANGLE) {
+        pendulumDirection *= -1;
+    }
+    glutPostRedisplay();
+    glutTimerFunc(1000 / 60, timer, 0);
+}
+
+void mouse(int button, int state, int x, int y) {
+    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
+        // Check if the mouse click is within the pendulum range
+        if (x >= WINDOW_WIDTH / 2 - 50 && x <= WINDOW_WIDTH / 2 + 50 && y >= WINDOW_HEIGHT / 2 - 20 && y <= WINDOW_HEIGHT / 2 + PENDULUM_LENGTH) {
+            isDraggingPendulum = true;
+            prevMouseX = x;
+        }
+    }
+    else if (button == GLUT_LEFT_BUTTON && state == GLUT_UP) {
+        isDraggingPendulum = false;
+    }
+}
+
+void motion(int x, int y) {
+    if (isDraggingPendulum) {
+        // Calculate the change in mouse position
+        int dx = x - prevMouseX;
+        pendulumAngle += dx * 0.5; // Adjust the pendulum angle based on mouse movement
+        prevMouseX = x;
+        glutPostRedisplay();
+    }
+}
+
+void keyboard(unsigned char key, int x, int y) {
+    switch (key) {
+        case '1':
+            currentQuadrant = TOP_LEFT;
+            break;
+        case '2':
+            currentQuadrant = TOP_RIGHT;
+            break;
+        case '3':
+            currentQuadrant = BOTTOM_LEFT;
+            break;
+        case '4':
+            currentQuadrant = BOTTOM_RIGHT;
+            break;
+    }
+    glutPostRedisplay();
+}
+
+int main(int argc, char **argv) {
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
+    glutInitWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT);
+    glutCreateWindow("Colorful Clock with Pendulum");
+    glutDisplayFunc(drawClock);
+    glutTimerFunc(0, timer, 0);
+    glutMouseFunc(mouse);
+    glutMotionFunc(motion);
+    glutKeyboardFunc(keyboard);
+    init();
+    glutMainLoop();
+    return 0;
+}
+
