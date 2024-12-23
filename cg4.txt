@@ -13,7 +13,7 @@ float pendulumDirection = 1;
 const float MAX_ANGLE = 30;
 bool isDraggingPendulum = false;
 int prevMouseX = 0;
-float clockRotation = 0; // Initial clock rotation angle
+float clockRotation = 0;
 
 // Quadrant to move clock within
 enum Quadrant { TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT };
@@ -21,7 +21,7 @@ Quadrant currentQuadrant = TOP_LEFT;
 
 void init() {
     glewInit();
-    glClearColor(1.0, 1.0, 1.0, 1.0); // White background
+    glClearColor(1.0, 1.0, 1.0, 1.0);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     glOrtho(-WINDOW_WIDTH / 2, WINDOW_WIDTH / 2, -WINDOW_HEIGHT / 2, WINDOW_HEIGHT / 2, -1.0, 1.0);
@@ -42,19 +42,18 @@ void drawCircle(float radius) {
 void drawPendulum() {
     glPushMatrix();
     glTranslatef(0, -CLOCK_RADIUS, 0);
-    glRotatef(pendulumAngle, 0, 0, 1); // Rotate around the z-axis
+    glRotatef(pendulumAngle, 0, 0, 1); 
     glLineWidth(5);
-    glColor3f(0.1, 0.5, 0.8); // Blue pendulum
+    glColor3f(0.1, 0.5, 0.8); 
 
-    // Draw house-shaped pendulum
-    glBegin(GL_QUADS); // Main body of the house
+    glBegin(GL_QUADS); 
     glVertex2f(-20, 0);
     glVertex2f(20, 0);
     glVertex2f(20, -PENDULUM_LENGTH);
     glVertex2f(-20, -PENDULUM_LENGTH);
     glEnd();
 
-    glBegin(GL_TRIANGLES); // Roof of the house
+    glBegin(GL_TRIANGLES);
     glVertex2f(-20, 0);
     glVertex2f(20, 0);
     glVertex2f(0, 20);
@@ -73,7 +72,7 @@ void drawClock() {
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    // Apply clock rotation
+   
     glRotatef(clockRotation, 0, 0, 1);
 
     switch (currentQuadrant) {
@@ -94,12 +93,12 @@ void drawClock() {
     glColor3f(0, 0, 0);
     drawCircle(CLOCK_RADIUS);
 
-    // Draw hour markers
+   
     glColor3f(0, 0, 0); // Black color
     glLineWidth(2);
     for (int i = 0; i < 12; ++i) {
         glPushMatrix();
-        glRotatef(i * 30, 0, 0, 1); // Rotate for each hour marker
+        glRotatef(i * 30, 0, 0, 1); 
         glBegin(GL_LINES);
         glVertex2f(0, CLOCK_RADIUS - 10);
         glVertex2f(0, CLOCK_RADIUS - 20);
@@ -107,17 +106,17 @@ void drawClock() {
         glPopMatrix();
     }
 
-    float secAngle = (60 - timeinfo->tm_sec) * 6; // Reversed for clockwise rotation
-    float minAngle = (60 - timeinfo->tm_min) * 6 + secAngle / 60; // Reversed for clockwise rotation
-    float hourAngle = (12 - (timeinfo->tm_hour % 12)) * 30 + minAngle / 12; // Reversed for clockwise rotation
+    float secAngle = (60 - timeinfo->tm_sec) * 6; 
+    float minAngle = (60 - timeinfo->tm_min) * 6 + secAngle / 60; 
+    float hourAngle = (12 - (timeinfo->tm_hour % 12)) * 30 + minAngle / 12; 
 
-    // Draw clock hands
+    
     glPushMatrix();
     glRotatef(-90, 0, 0, 1);
     
     // Seconds hand
     glRotatef(secAngle, 0, 0, 1);
-    glColor3f(0.9, 0.2, 0.2); // Red seconds hand
+    glColor3f(0.9, 0.2, 0.2);
     glLineWidth(1);
     glBegin(GL_LINES);
     glVertex2f(0, 0);
@@ -125,9 +124,9 @@ void drawClock() {
     glEnd();
 
     // Minutes hand
-    glRotatef(-secAngle, 0, 0, 1); // Compensate for seconds hand rotation
+    glRotatef(-secAngle, 0, 0, 1);
     glRotatef(minAngle, 0, 0, 1);
-    glColor3f(0.2, 0.7, 0.2); // Green minutes hand
+    glColor3f(0.2, 0.7, 0.2);
     glLineWidth(2);
     glBegin(GL_LINES);
     glVertex2f(0, 0);
@@ -135,9 +134,9 @@ void drawClock() {
     glEnd();
 
     // Hours hand
-    glRotatef(-minAngle, 0, 0, 1); // Compensate for minutes hand rotation
+    glRotatef(-minAngle, 0, 0, 1);
     glRotatef(hourAngle, 0, 0, 1);
-    glColor3f(0.2, 0.2, 0.9); // Blue hours hand
+    glColor3f(0.2, 0.2, 0.9);
     glLineWidth(3);
     glBegin(GL_LINES);
     glVertex2f(0, 0);
@@ -177,7 +176,7 @@ void motion(int x, int y) {
     if (isDraggingPendulum) {
         // Calculate the change in mouse position
         int dx = x - prevMouseX;
-        pendulumAngle += dx * 0.5; // Adjust the pendulum angle based on mouse movement
+        pendulumAngle += dx * 0.5; 
         prevMouseX = x;
         glutPostRedisplay();
     }
@@ -199,7 +198,7 @@ void keyboard(unsigned char key, int x, int y) {
             break;
         case 'r':
         case 'R':
-            clockRotation += 30; // Rotate clock by 30 degrees clockwise
+            clockRotation += 30;
             break;
     }
     glutPostRedisplay();
